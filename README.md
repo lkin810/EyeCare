@@ -1,4 +1,4 @@
-<img width="1693" height="802" alt="image" src="https://github.com/user-attachments/assets/acdaca99-2eb8-4c51-9df5-ebff9d0ce966" /># 护眼助手 v5.0
+护眼助手 v5.0
 
 轻量级蓝光过滤 & 休息提醒小工具
 整体不到1MB
