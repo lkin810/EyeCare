@@ -1,0 +1,25 @@
+# Build outputs
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.lib
+*.dll
+
+# Visual Studio
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# Temporary files
+*.tmp
+*.bak
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
