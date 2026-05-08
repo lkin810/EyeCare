@@ -1,6 +1,7 @@
 # 护眼助手 v5.0
 
-轻量级蓝光过滤 & 休息提醒工具
+轻量级蓝光过滤 & 休息提醒小工具
+整体不到1MB
 
 ## 展示图
 <img width="1080" height="870" alt="image" src="https://github.com/user-attachments/assets/9b462793-9613-4538-a40f-088baf1384a6" />
@@ -58,7 +59,7 @@
 - 语言：C++17
 - GUI：纯 Win32 API，零框架依赖
 - 绘图：GDI+ 双缓冲，无闪烁
-- 体积：~260KB
+- 体积：~50KB
 
 ## 注意事项
 
@@ -67,3 +68,7 @@
 3. 退出程序时自动恢复原始 Gamma 值
 4. 程序异常退出时 Gamma 可能未恢复，重启程序即可
 5. MinGW 编译的 exe 可能被杀软误报，建议用 MSVC 编译
+
+## 开源
+
+License: MIT
