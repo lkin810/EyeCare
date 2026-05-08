@@ -2,6 +2,12 @@
 
 轻量级蓝光过滤 & 休息提醒工具
 
+## 展示图
+<img width="1080" height="870" alt="image" src="https://github.com/user-attachments/assets/9b462793-9613-4538-a40f-088baf1384a6" />
+<img width="2560" height="1440" alt="image" src="https://github.com/user-attachments/assets/15311650-2613-4919-8643-4ced2cc93425" />
+
+
+
 ## 功能
 
 1. **蓝光过滤**
