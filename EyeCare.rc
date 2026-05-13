@@ -1,0 +1,48 @@
+// EyeCare.rc - Resource Script
+// All Chinese text is set at runtime via SetWindowTextW/SetDlgItemTextW
+// to avoid windres encoding issues.
+
+#include "resource.h"
+#include <windows.h>
+#include <commctrl.h>
+
+// Visual styles manifest
+1 RT_MANIFEST "EyeCare.manifest"
+
+// Application icon (multi-size: 16,32,48,64,128,256)
+IDI_APP ICON "EyeCare.ico"
+
+// ========== Version Information ==========
+// This is CRITICAL for reducing antivirus false positives.
+// Without VS_VERSIONINFO, heuristic scanners flag the exe as suspicious.
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     6,4,0,0
+PRODUCTVERSION  6,4,0,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"    // English (US) + Unicode
+        BEGIN
+            VALUE "CompanyName",      "EyeCare"
+            VALUE "FileDescription",  "Eye Care Assistant"
+            VALUE "FileVersion",      "6.4.0.0"
+            VALUE "InternalName",     "EyeCare.exe"
+            VALUE "LegalCopyright",   "MIT License"
+            VALUE "OriginalFilename", "EyeCare.exe"
+            VALUE "ProductName",      "Eye Care Assistant"
+            VALUE "ProductVersion",   "6.4.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 0x04B0
+    END
+END
+
+// ========== End of resources ==========
