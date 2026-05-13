@@ -4,7 +4,8 @@
 
 ## 截图
 
-<img width="1080" height="900" alt="image" src="https://github.com/user-attachments/assets/02c5f785-48e4-4fff-b275-1638c18368b8" />
+<img width="1080" height="930" alt="image" src="https://github.com/user-attachments/assets/4a2a22ba-ff1a-49b0-8aba-e322b03edd9a" />
+
 
 
 ## 功能
@@ -82,7 +83,7 @@ EyeCare/
 ├── EyeCare.ico          # 应用图标（多尺寸：16~256px）
 ├── build.bat            # MSVC 编译脚本
 ├── build.sh             # Linux 交叉编译脚本
-├── LICENSE              # MIT 许可证
+├── LICENSE              # 
 └── README.md            # 本文件
 ```
 
