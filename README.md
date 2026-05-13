@@ -119,6 +119,8 @@ EyeCare/
 | 体积 | ~300KB（MSVC 静态链接） |
 | 兼容 | Windows 7 / 8 / 8.1 / 10 / 11 |
 
+## 本程序使用系统预装字体"微软雅黑"和"Consolas"进行界面渲染，不包含或分发任何字体文件。
+
 ## 注意事项
 
 1. `SetDeviceGammaRamp` 在某些显卡驱动上可能不工作
@@ -127,6 +129,4 @@ EyeCare/
 4. 程序异常退出时 Gamma 可能未恢复，重启程序即可
 5. MinGW 编译的 exe 可能被杀软误报，建议用 MSVC 编译
 
-## 许可证
 
-[MIT License](LICENSE)
