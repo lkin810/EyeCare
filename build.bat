@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================
-REM  EyeCare v6.3 Build Script (MSVC)
+REM  EyeCare v6.4 Build Script (MSVC)
 REM
 REM  Usage:
 REM    1. Open "x64 Native Tools Command Prompt for VS 2022"
@@ -14,7 +14,7 @@ REM  MinGW builds are more likely flagged by Windows Defender
 REM =============================================================
 
 echo ============================================
-echo   EyeCare v6.3 - Building...
+echo   EyeCare v6.4 - Building...
 echo ============================================
 
 REM Step 1: Compile resource script (VERSIONINFO)

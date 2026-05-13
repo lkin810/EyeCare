@@ -17,8 +17,8 @@ IDI_APP ICON "EyeCare.ico"
 // Without VS_VERSIONINFO, heuristic scanners flag the exe as suspicious.
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     6,3,0,0
-PRODUCTVERSION  6,3,0,0
+FILEVERSION     6,4,0,0
+PRODUCTVERSION  6,4,0,0
 FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
 FILEFLAGS       0
 FILEOS          VOS_NT_WINDOWS32
@@ -31,12 +31,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName",      "EyeCare"
             VALUE "FileDescription",  "Eye Care Assistant"
-            VALUE "FileVersion",      "6.3.0.0"
+            VALUE "FileVersion",      "6.4.0.0"
             VALUE "InternalName",     "EyeCare.exe"
             VALUE "LegalCopyright",   "MIT License"
             VALUE "OriginalFilename", "EyeCare.exe"
             VALUE "ProductName",      "Eye Care Assistant"
-            VALUE "ProductVersion",   "6.3.0.0"
+            VALUE "ProductVersion",   "6.4.0.0"
         END
     END
     BLOCK "VarFileInfo"

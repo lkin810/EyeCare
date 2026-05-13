@@ -1,4 +1,4 @@
-// resource.h - EyeCare Resource Definitions v6.3
+// resource.h - EyeCare Resource Definitions v6.4
 #pragma once
 
 #ifndef IDC_STATIC

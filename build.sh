@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================
-#  EyeCare v6.3 Build Script (Linux Cross-Compile with llvm-mingw)
+#  EyeCare v6.4 Build Script (Linux Cross-Compile with llvm-mingw)
 #
 #  Prerequisites:
 #    - llvm-mingw (or MinGW-w64) toolchain installed
@@ -15,7 +15,7 @@
 set -e
 
 echo "============================================"
-echo "  EyeCare v6.3 - Cross-Compiling..."
+echo "  EyeCare v6.4 - Cross-Compiling..."
 echo "============================================"
 
 # Compile resource script
@@ -31,8 +31,9 @@ fi
 
 # Compile and link
 echo "[2/2] Compiling main program..."
-x86_64-w64-mingw32-clang++ -static -mwindows -O2 -std=c++17 \
+x86_64-w64-mingw32-clang++ -static -mwindows -municode -O2 -std=c++17 \
     -DUNICODE -D_UNICODE \
+    -o EyeCare.exe \
     EyeCare.cpp $RES \
     -lgdiplus -lole32 -lshell32 -lcomctl32 -lwinmm -ladvapi32 -lshfolder
 

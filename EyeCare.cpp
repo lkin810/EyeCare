@@ -1,5 +1,5 @@
 // ============================================================================
-//  EyeCare.cpp - EyeCare v6.3  ★ Pixel Paper Style
+//  EyeCare.cpp - EyeCare v6.4  ★ Pixel Paper Style
 //  ★ 20-20-20 Break Strategy Preset
 //  ★ Fullscreen Break Overlay (Pixel Flip Clock Style)
 //  ★ Pixel Paper Style UI — Square Corners / 2px Border / Hard Offset Shadow / Grid Texture
@@ -9,6 +9,8 @@
 //  ★ Idle Detection / Continuous Use Warning / Data Statistics
 //  ★ v6.3: Pixel Polish — shadow depth tiers / hover+active feedback / bevel contrast /
 //           paper texture / unified color tier usage / bar chart bevel
+//  ★ v6.4: Sleep/Idle Fix — WM_POWERBROADCAST sleep detection / break trigger respects
+//           idle+sleep state / wall-clock idle compensation / future-time clamping
 // ============================================================================
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -206,9 +208,14 @@ static HANDLE           g_hMutex = NULL;
 // --- v6.1: Stats / Idle / Continuous ---
 static DailyStats       g_todayStats;
 static BOOL             g_isIdle = FALSE;
-static DWORD            g_idleStartTick = 0;
+static time_t           g_idleStartWall = 0;  // v6.4: wall-clock idle start time
 static int              g_continuousMinutes = 0;
 static int              g_lastWarnBalloonMin = 0;
+
+// --- v6.4: Sleep / Hibernate detection ---
+static BOOL             g_isSleeping = FALSE;
+static time_t           g_sleepStartTime = 0;
+static time_t           g_wakeTime = 0;        // wall-clock of last wake (grace period)
 static HWND             g_hWndStats = NULL;
 static WCHAR            g_statsPath[MAX_PATH] = {};
 
@@ -592,8 +599,62 @@ void UpdateCountdown() {
     if (intervalSec <= 0) { g_nextBreakSec = 0; return; }
     time_t now = time(NULL);
     double elapsed = difftime(now, g_lastBreakEnd);
+    // If g_lastBreakEnd is in the future, clamp elapsed to 0.
+    // This can happen if compensation overshot; treat as fresh cycle.
+    if (elapsed < 0) elapsed = 0;
     g_nextBreakSec = intervalSec - (int)elapsed;
     if (g_nextBreakSec < 0) g_nextBreakSec = 0;
+}
+
+// ============================================================================
+//  Break Timer Compensation (v6.4)
+//
+//  DESIGN: When the user returns from idle/sleep, we need to adjust the break
+//  timer to account for the time they were away. The key insight is:
+//
+//    workedBefore = time away started - last break end
+//    remainingWork = intervalSec - workedBefore
+//
+//  If the away duration >= remainingWork, the user was away long enough that
+//  their eyes have "rested through" the remaining work period → reset to a
+//  fresh cycle. Otherwise, preserve the work already done.
+//
+//  INVARIANTS maintained:
+//    I1: g_lastBreakEnd <= time(NULL) after compensation
+//    I2: g_nextBreakSec <= intervalSec after compensation
+//    I6: User never waits more than intervalSec after a valid away period
+// ============================================================================
+
+static void CompensateBreakTime(time_t awayStart, time_t awayEnd) {
+    if (!g_settings.enableBreak) return;
+    int intervalSec = GetBreakIntervalSec();
+    if (intervalSec <= 0) return;
+
+    // How long the user worked before going away
+    double workedBefore = difftime(awayStart, g_lastBreakEnd);
+    if (workedBefore < 0) workedBefore = 0;
+
+    // How much more work was needed before a break
+    double remainingWork = intervalSec - workedBefore;
+    if (remainingWork < 0) remainingWork = 0;
+
+    double awayDuration = difftime(awayEnd, awayStart);
+    if (awayDuration < 0) awayDuration = 0;
+    // Cap to 24h to prevent extreme values from clock changes
+    if (awayDuration > 86400) awayDuration = 86400;
+
+    if (awayDuration >= remainingWork) {
+        // Away long enough to count as a "break" → fresh cycle from now
+        g_lastBreakEnd = awayEnd;
+    } else {
+        // Preserve work already done, skip the away period
+        g_lastBreakEnd += (time_t)awayDuration;
+        // Clamp: never let g_lastBreakEnd exceed now (Invariant I1)
+        time_t now = time(NULL);
+        if (g_lastBreakEnd > now) g_lastBreakEnd = now;
+    }
+
+    UpdateCountdown();
 }
 
 // ============================================================================
@@ -2364,7 +2425,8 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 
     case WM_TIMER:
         if (wParam == TIMER_BREAK_CHECK) {
-            if (g_settings.enableBreak && !g_hWndBreak) {
+            // v6.4: Don't trigger break while idle or sleeping — user is away
+            if (g_settings.enableBreak && !g_hWndBreak && !g_isIdle && !g_isSleeping) {
                 int intervalSec = GetBreakIntervalSec();
                 if (intervalSec > 0) {
                     time_t now = time(NULL);
@@ -2374,7 +2436,8 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         } else if (wParam == TIMER_SCREEN_TIME) {
             // v6.1: Idle detection for screen time
             // Also skip during break overlay (user is resting eyes)
-            if (!g_isIdle && !g_hWndBreak) {
+            // v6.4: Also skip during sleep (user is away)
+            if (!g_isIdle && !g_hWndBreak && !g_isSleeping) {
                 g_screenMinutes++;
                 g_continuousMinutes++;
                 g_todayStats.screenMinutes++;
@@ -2383,32 +2446,41 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
             }
             UpdateTrayTooltip();
         } else if (wParam == TIMER_COUNTDOWN) {
-            // v6.1: Idle detection
+            // v6.4: Idle detection with wall-clock compensation + wake grace period
             {
                 LASTINPUTINFO lii = { sizeof(lii) };
                 if (GetLastInputInfo(&lii)) {
                     DWORD idleMs = GetTickCount() - lii.dwTime;
                     if (idleMs > 180000) { // 3 minutes
                         if (!g_isIdle) {
-                            g_isIdle = TRUE;
-                            g_idleStartTick = lii.dwTime; // record when idle started
+                            // Grace period: skip idle detection for 30s after wake
+                            // (GetLastInputInfo needs time to update after sleep)
+                            if (g_wakeTime == 0 || difftime(time(NULL), g_wakeTime) > 30) {
+                                g_isIdle = TRUE;
+                                g_idleStartWall = time(NULL);
+                            }
                         }
                     } else {
                         if (g_isIdle) {
-                            // Returning from idle — eyes were resting while away
+                            // Returning from idle — compensate using smart logic
                             g_isIdle = FALSE;
-                            g_continuousMinutes = 0;  // Reset: being away = eyes rested
-                            DWORD idleDuration = (GetTickCount() - g_idleStartTick) / 1000;
-                            // Push g_lastBreakEnd forward by idle duration so countdown resumes
-                            g_lastBreakEnd += idleDuration;
-                            UpdateCountdown();
+                            g_continuousMinutes = 0;
+                            // Only compensate if break overlay is NOT showing
+                            // (during break, g_lastBreakEnd is set when overlay closes)
+                            if (!g_hWndBreak) {
+                                time_t now = time(NULL);
+                                CompensateBreakTime(g_idleStartWall, now);
+                            }
                         }
+                        // Clear wake grace period once we see real input
+                        g_wakeTime = 0;
                     }
                 }
             }
             UpdateCountdown();
             // Instant trigger — no 60s delay when countdown reaches zero
-            if (g_nextBreakSec <= 0 && g_settings.enableBreak && !g_hWndBreak) {
+            // Don't trigger while idle or sleeping
+            if (g_nextBreakSec <= 0 && g_settings.enableBreak && !g_hWndBreak && !g_isIdle && !g_isSleeping) {
                 ShowBreakOverlay();
             }
 
@@ -2429,6 +2501,40 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
         }
         InvalidateRect(hWnd, NULL, FALSE);
         return 0;
+
+    // v6.4: Handle system sleep/wake — pause timer during sleep, resume on wake
+    case WM_POWERBROADCAST:
+        if (wParam == PBT_APMSUSPEND) {
+            // System is going to sleep — record wall-clock time
+            g_isSleeping = TRUE;
+            g_sleepStartTime = time(NULL);
+            // Close break overlay properly (via CloseBreakOverlay for stats + g_lastBreakEnd)
+            // Invariant I5: always use CloseBreakOverlay to ensure consistent stats
+            if (g_hWndBreak && IsWindow(g_hWndBreak)) {
+                CloseBreakOverlay();
+            }
+        } else if (wParam == PBT_APMRESUMEAUTOMATIC || wParam == PBT_APMRESUMESUSPEND) {
+            // System woke from sleep — compensate timer
+            if (g_isSleeping && g_sleepStartTime > 0) {
+                // Use idleStartWall if the user was idle before sleeping,
+                // to capture the FULL away period (not just sleep portion)
+                time_t awayStart = (g_idleStartWall > 0 && g_idleStartWall < g_sleepStartTime)
+                                   ? g_idleStartWall : g_sleepStartTime;
+                time_t now = time(NULL);
+                CompensateBreakTime(awayStart, now);
+                g_continuousMinutes = 0;  // Sleep = eyes rested
+            }
+            g_isSleeping = FALSE;
+            g_sleepStartTime = 0;
+            // Clear idle state so idle-return handler doesn't double-compensate
+            g_isIdle = FALSE;
+            g_idleStartWall = 0;
+            // Set wake grace period (GetLastInputInfo needs time to update)
+            g_wakeTime = time(NULL);
+            UpdateCountdown();
+            InvalidateRect(hWnd, NULL, FALSE);
+        }
+        return TRUE;
 
     case WM_TRAYICON:
         if (LOWORD(lParam) == WM_RBUTTONUP) {
@@ -2459,11 +2565,13 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) 
             SaveSettings(); InvalidateRect(hWnd, NULL, FALSE); return 0;
         case IDM_TOGGLE_BREAK:
             g_settings.enableBreak = !g_settings.enableBreak;
+            // Invariant I7: reset timer start when enabling, prevent instant trigger
+            if (g_settings.enableBreak) g_lastBreakEnd = time(NULL);
             SaveSettings(); UpdateCountdown(); InvalidateRect(hWnd, NULL, FALSE); return 0;
         case IDM_SHOW: ShowWindow(hWnd, SW_SHOW); SetForegroundWindow(hWnd); return 0;
         case IDM_ABOUT:
             MessageBoxW(hWnd,
-                L"\x62a4\x773c\x52a9\x624b v6.2\n\n"
+                L"\x62a4\x773c\x52a9\x624b v6.4\n\n"
                 L"\x50cf\x7d20\x7eb8\x9762\x98ce  |  \x7eaf Win32 + GDI+\n"
                 L"\x652f\x6301 20-20-20 \x4f11\x606f\x7b56\x7565\n"
                 L"\x7a7a\x95f2\x68c0\x6d4b \x00b7 \x8fde\x7eed\x7528\x773c\x8b66\x544a \x00b7 \x7528\x773c\x7edf\x8ba1\n"
