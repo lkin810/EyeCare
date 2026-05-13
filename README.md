@@ -4,7 +4,8 @@
 
 ## 截图
 
-![alt text](image-2.png)
+<img width="1080" height="900" alt="image" src="https://github.com/user-attachments/assets/02c5f785-48e4-4fff-b275-1638c18368b8" />
+
 
 ## 功能
 
