@@ -1,10 +1,11 @@
-# EyeCare v6.2
+# EyeCare v6.4
 
 轻量级 Windows 护眼助手 — 蓝光过滤 & 定时休息，像素纸风格 UI
 
 ## 截图
 
-![alt text](image-2.png)
+<img width="1080" height="930" alt="image" src="https://github.com/user-attachments/assets/2a8ea668-9229-4cf7-b5f7-320672546647" />
+
 
 ## 功能
 
